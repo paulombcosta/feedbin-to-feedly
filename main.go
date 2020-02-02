@@ -16,13 +16,7 @@ const (
 
 type Opml struct {
 	XMLName xml.Name `xml:"opml"`
-	Head    Head     `xml:"head"`
 	Body    Body     `xml:"body"`
-}
-
-type Head struct {
-	XMLName xml.Name `xml:"head"`
-	Title   string   `xml:"title"`
 }
 
 type Body struct {
@@ -31,12 +25,13 @@ type Body struct {
 }
 
 type Subscription struct {
-	XMLName xml.Name `xml:"outline"`
-	Text    string   `xml:"text,attr"`
-	Title   string   `xml:"title,attr"`
-	Type    string   `xml:"type,attr"`
-	XmlUrl  string   `xml:"xmlUrl,attr"`
-	HtmlUrl string   `xml:"htmlUrl,attr"`
+	XMLName       xml.Name       `xml:"outline"`
+	Text          string         `xml:"text,attr"`
+	Title         string         `xml:"title,attr"`
+	Type          string         `xml:"type,attr"`
+	XmlUrl        string         `xml:"xmlUrl,attr"`
+	HtmlUrl       string         `xml:"htmlUrl,attr"`
+	Subscriptions []Subscription `xml:"outline"`
 }
 
 type CreateFeed struct {
@@ -79,6 +74,11 @@ func writeSubscriptions(subs []Subscription) {
 
 	for _, sub := range subs {
 
+		if sub.Subscriptions != nil {
+			writeSubscriptions(sub.Subscriptions)
+			continue
+		}
+
 		data, err := json.Marshal(&CreateFeed{ID: "feed/" + sub.XmlUrl, Title: sub.Title})
 
 		if err != nil {
@@ -103,17 +103,16 @@ func writeSubscriptions(subs []Subscription) {
 		}
 
 		if resp.StatusCode == 200 {
-			fmt.Printf("Sucessfully added feed %s", sub.Title)
+			fmt.Printf("Sucessfully added feed %s\n", sub.Title)
 		} else {
-			fmt.Printf("Request failed with status code %d", resp.StatusCode)
+			fmt.Printf("Request failed with status code %d\n", resp.StatusCode)
 		}
-
 	}
 
+	fmt.Println("Done")
 }
 
 func closeFile(f *os.File) {
-	fmt.Println("closing file")
 	err := f.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error %v\n", err)
