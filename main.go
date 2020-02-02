@@ -77,33 +77,37 @@ func writeSubscriptions(subs []Subscription) {
 	client := &http.Client{}
 	devKey := os.Getenv("FEEDLY_DEVELOPER_KEY")
 
-	data, err := json.Marshal(&CreateFeed{ID: "feed/" + subs[0].XmlUrl, Title: subs[0].Title})
+	for _, sub := range subs {
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error %v\n", err)
-		os.Exit(1)
-	}
+		data, err := json.Marshal(&CreateFeed{ID: "feed/" + sub.XmlUrl, Title: sub.Title})
 
-	req, err := http.NewRequest("POST", BASE_URL+"subscriptions", bytes.NewReader(data))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error %v\n", err)
+			os.Exit(1)
+		}
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error %v\n", err)
-		os.Exit(1)
-	}
+		req, err := http.NewRequest("POST", BASE_URL+"subscriptions", bytes.NewReader(data))
 
-	req.Header.Add("Authorization", "OAuth "+devKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error %v\n", err)
+			os.Exit(1)
+		}
 
-	resp, err := client.Do(req)
+		req.Header.Add("Authorization", "OAuth "+devKey)
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error %v\n", err)
-		os.Exit(1)
-	}
+		resp, err := client.Do(req)
 
-	if resp.StatusCode == 200 {
-		fmt.Printf("Sucessfully added feed %s", subs[0].Title)
-	} else {
-		fmt.Printf("Request failed with status code %d", resp.StatusCode)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error %v\n", err)
+			os.Exit(1)
+		}
+
+		if resp.StatusCode == 200 {
+			fmt.Printf("Sucessfully added feed %s", sub.Title)
+		} else {
+			fmt.Printf("Request failed with status code %d", resp.StatusCode)
+		}
+
 	}
 
 }
