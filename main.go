@@ -1,10 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
+)
+
+const (
+	BASE_URL = "https://cloud.feedly.com/v3/"
 )
 
 type Opml struct {
@@ -32,9 +39,14 @@ type Subscription struct {
 	HtmlUrl string   `xml:"htmlUrl,attr"`
 }
 
+type CreateFeed struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+}
+
 func main() {
 	subscriptions := loadSubscriptions()
-	fmt.Println(subscriptions)
+	writeSubscriptions(subscriptions)
 }
 
 func loadSubscriptions() []Subscription {
@@ -59,6 +71,41 @@ func loadSubscriptions() []Subscription {
 	xml.Unmarshal(byteArr, &opml)
 
 	return opml.Body.Subscriptions
+}
+
+func writeSubscriptions(subs []Subscription) {
+	client := &http.Client{}
+	devKey := os.Getenv("FEEDLY_DEVELOPER_KEY")
+
+	data, err := json.Marshal(&CreateFeed{ID: "feed/" + subs[0].XmlUrl, Title: subs[0].Title})
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error %v\n", err)
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequest("POST", BASE_URL+"subscriptions", bytes.NewReader(data))
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error %v\n", err)
+		os.Exit(1)
+	}
+
+	req.Header.Add("Authorization", "OAuth "+devKey)
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error %v\n", err)
+		os.Exit(1)
+	}
+
+	if resp.StatusCode == 200 {
+		fmt.Printf("Sucessfully added feed %s", subs[0].Title)
+	} else {
+		fmt.Printf("Request failed with status code %d", resp.StatusCode)
+	}
+
 }
 
 func closeFile(f *os.File) {
